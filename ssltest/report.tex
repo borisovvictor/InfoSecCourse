@@ -1,1 +1,185 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx} % Required for the inclusion of images
+\graphicspath{{res/}}
+\usepackage{natbib} % Required to change bibliography style to APA
+\usepackage{amsmath} % Required for some math elements 
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+
+\usepackage[T1,T2A]{fontenc}
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+\renewcommand{\labelenumi}{\alph{enumi}.} % Make numbering in the enumerate environment by letter rather than number (e.g. section 6)
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\title{Сервис тестирования корректности настройки SSL на сервере Qualys SSL Labs – SSL Server Test} % Title
+
+\author{Виктор \textsc{Борисов}} % Author name
+
+\date{\today} % Date for the report
+
+\begin{document}
+
+\maketitle % Insert the title, author and date
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	SECTION 1
+%----------------------------------------------------------------------------------------
+
+\section{Цель работы}
+
+Сервис тестирования корректности настройки SSL на сервере Qualys SSL Labs – SSL Server Test
+
+\section{Ход работы}
+
+\subsection{Изучение}
+\subsubsection{Лучшие практики по развертыванию SSL}
+\begin{itemize}
+\item Использовать 2048-битные закрытые ключи.
+Использовать 2048-битный RSA или 256-битные ECDSA закрытые ключи для всех серверов. Ключи такой крепости безопасны и будут оставаться безопасными в течение значительного периода времени.
+\item Защитить закрытый ключ. Относитесь к закрытым ключам как к важным активам, предоставляя доступ к как можно меньшей группе сотрудников.
+\item Обеспечить охват всех используемых доменных имен. Убедитесь, что ваши сертификаты охватывают все доменные имена, которые вы хотите использовать на сайте.
+\item Приобретать сертификаты у надежного удостоверяющего центра (CA).
+\item Использовать надежные алгоритмы подписи сертификата. Безопасность сертификата зависит от длины закрытого ключа и прочности используемой функции хеширования. Сегодня большинство сертификатов используют алгоритм SHA1, который считается слабым. 
+\item Использовать безопасные протоколы. (TLS v1.0/v1.1/v1.2)
+\item Использовать безопасные алгоритмы шифрования. В данном случае подойдут симметричные алгоритмы с ключами более 128 бит.
+\item Контролировать выбор алгоритма шифрования. В SSL версии 3 и более поздних версиях протокола, клиенты отправляют список алгоритмов шифрования, которые они поддерживают, и сервер выбирает один из них для организации безопасного канала связи. Не все сервера могут делать это хорошо, так как некоторые выбирают первый поддерживаемый алгоритм из списка.
+\item Использование Forward Secrecy. Forward Secrecy — это особенность протокола, который обеспечивает безопасный обмен данными, он не зависит от закрытого ключа сервера. С алгоритмами шифрования, которые не поддерживают Forward Secrecy, возможно расшифровать ранее зашифрованные разговоры с помощью закрытого ключа сервера.
+\item Отключить проверку защищенности по инициативе клиента.
+\end{itemize}
+
+\subsubsection{Основные уязвимости и атаки на SSL последнего времени - POODLE, HeartBleed}
+\paragraph {POODLE\\}
+Атака POODLE(Padding Oracle On Downgraded Legacy Encryption) работает по следующему сценарию: Взломщик отправляет свои данные на вервер по протоколу SSL3 от имени взламываемой структуры, что позволяет ему постепенно расшифровывать данные из запросов. Это возможно, так как в SSL3 нету привязки к MAC адресу.
+
+\paragraph {Heartbleed\\}
+Ошибка (переполнение буфера) в криптографическом программном обеспечении OpenSSL, позволяющая несанкционированно читать память на сервере или на клиенте, в том числе для извлечения закрытого ключа сервера. Информация об уязвимости была опубликована в апреле 2014 года, ошибка существовала с конца 2011 года.
+
+\subsection{Выбрать со стартовой страницы SSL Server Test один домен из списка Recent Best и один домен из списка Recent Worst, интерпретировать результаты в разделе Summary}
+
+\paragraph {Recent Best\\}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{instantmacsupport_nl_summary.png}
+\caption{Summary для Recent Best.}
+\end{figure}
+
+\begin{itemize}
+\item{Поддержка всех версии протокола TLS.}
+\item{Поддержка заголовков HTTP Strict Transport Security на протяжении длительного времени.}
+\item{Поддержка forward secrecy. Свойство некоторых протоколов согласования ключа (Key-agreement), которое гарантирует, что сессионные ключи, полученные при помощи набора ключей долговременного пользования, не будут скомпрометированы при компрометации одного из долговременных ключей}
+\item{Защита от downgrade-атак.}
+\end{itemize}
+
+\paragraph {Recent Worst\\}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{wolke_4d53_de_summary}
+\caption{Summary для Recent Worst.}
+\end{figure}
+
+\begin{itemize}
+\item{Срок действия сертификата истек.}
+\item{Поддержка заголовков HTTP Strict Transport Security на протяжении длительного времени.}
+\item{Поддержка TLS только версии 1.2}
+\item{Поддержка forward secrecy. }
+\end{itemize}
+
+Видимо низкая оценка данному хосту потсавлена лишь из-за просроченного сертификата.
+
+\newpage
+\subsection{Выбор интернет-домена, защищенного SSL-шифрованием.}
+Для анализа защищенности SSL шифрованием был выбран домен instagram.com.
+
+\paragraph{Summary\\}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{instagram_com_summary}
+\caption{Summary для instagram.com.}
+\end{figure}
+
+
+\begin{itemize}
+\item {(-) Сервер позволяет использовать слабый шифр RC4.}
+\item {(+/-) Сервер поддерживает Forward Secrecy только с современными браузерами}
+\item {(+) Защита от downgrade-атак.}
+\item {(+) Поддерживается заголовок HTTP Strict Transport Security на протяжении длительного времени.}
+
+\end{itemize}
+
+\paragraph{Configuration\\}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{instagram_com_configuration}
+\caption{Configuration для instagram.com.}
+\end{figure}
+
+\begin{itemize}
+\item{Шифры, использующие RC4 отмечены как INSECURE.}
+\item{ECDH - Elliptic curve Diffie–Hellman - Протокол Дииффи-Хееллмана на эллиптических кривых}
+\item{RSA - Rivest, Shamir, Adleman - криптографический алгоритм}
+\item{RC4 - Rivest Cipher 4 -  потоковый шифр 4-й версии}
+\item{SHA/SHA256/384 - Secure Hash Algorithm - Алгоритм хэширования. Цифра - длина ключа}
+\item{AES - Advanced Encryption Standard - симметричный алгоритм блочного шифрования}
+\item{GCM и CBC это два режима блочного шифрования}
+\item{TLS - Transport Layer Security - криптографический протокол}
+\item{3DES - Digital Encryption Standard - алгоритм блочного шифрования}
+\item{EDE - Encrypt, Decrypt, Encrypt - режим работы алгоритма 3DES}
+\end{itemize}
+
+\paragraph{Protocol details\\}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{instagram_com_protocol_details}
+\caption{Protocol details для instagram.com.}
+\end{figure}
+
+\begin{itemize}
+\item{Secure Renegotiation - Возобновление подлючения TLS}
+\item{Secure Client-Initiated Renegotiation, Insecure Client-Initiated Renegotiation - подверженность процесса проверки сертификата атаке.}
+\item{BEAST attack, POODLE (SSLv3), POODLE (TLS) - проверка уязвимости к данным атакам.}
+\item{Downgrade attack prevention - атака, при которой клиента принудительно заставляют использовать предыдущие (менее надежные) версии протоколов}
+\item{SSL/TLS compression - сжатие SSL/TLS не используется}
+\item{RC4 - Используется слабый шифр RC4}
+\item{Heartbeat (extension), Heartbleed (vulnerability), OpenSSL CCS vuln. (CVE-2014-0224) - уязвимости OpenSSL Heartbleed и тд.}
+\item{Forward Secrecy - совместимость Forward Secrecy с новыми браузерами.}
+\item{Strict Transport Security (HSTS) - форсированное переключение на HTTPS}
+\item{SSL 2 handshake compatibility - Совместимость с SSL 2 handshake}
+\end{itemize}
+
+\subsection{Сделать итоговый вывод о реализации SSL на заданном домене}
+Общую защищенность сервера можно оценить как удовлетвроительную. Это только из-за поддержки устаревшего алгоритма шифрования RC4. Все остальные характеристики удовлетворяют лучшим практикам развертывания SSL.
+
+\section{Выводы}
+В результате выполнения работы были изучены лучшие практики по развертыванию SSL серверов, а так же средство для проверки SSL серверов Qualys SSL Server Test, которое позволяет подробно изучить любой домен. Полученные данные помогут получить действительную картину защищенности сервера и понять какие действия необходимо препринять для улучшения стабильности и безопасности сервера.
+
+
+
+%----------------------------------------------------------------------------------------
+%	END
+%----------------------------------------------------------------------------------------
+
+
+\end{document}
 
